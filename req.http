@@ -1,0 +1,6 @@
+WEBSOCKET http://0.0.0.0:3500/chat?token=Varun
+
+Content-Type : application/json 
+{
+    "message": "Hello World!"
+}
