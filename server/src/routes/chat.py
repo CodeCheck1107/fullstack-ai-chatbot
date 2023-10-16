@@ -1,10 +1,13 @@
 import os
 from fastapi import APIRouter, FastAPI, WebSocket, WebSocketDisconnect, Request, Depends, HTTPException
 import uuid
+from rejson import Path
 from ..socket.connection import ConnectionManager
 from ..socket.utils import get_token
 from ..redis.producer import Producer
 from ..redis.config import Redis
+from ..schema.chat import Chat
+from pydantic import BaseModel
 
 chat = APIRouter()
 manager = ConnectionManager()
@@ -16,8 +19,32 @@ redis = Redis()
 
 
 @chat.post("/token")
-async def token_generator(request: Request):
-    return None
+async def token_generator(name: str, request: Request):
+    token = str(uuid.uuid4())
+
+    if name == "":
+        raise HTTPException(status_code=400, detail={
+            "loc": "name",  "msg": "Enter a valid name"})
+
+    # Create new chat session
+    json_client = redis.create_rejson_connection()
+
+    chat_session = Chat(
+        token=token,
+        messages=[],
+        name=name
+    )
+
+    # Store chat session in redis JSON with the token as key
+    json_client.jsonset(str(token), Path("."), chat_session.dict())
+
+    # Set a timeout for redis data
+    redis_client = await redis.create_connection()
+    await redis_client.expire(str(token), 3600)
+
+
+    return chat_session.dict()
+
 
 
 # @route   POST /refresh_token
