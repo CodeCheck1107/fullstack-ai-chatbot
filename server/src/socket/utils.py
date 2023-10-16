@@ -9,4 +9,3 @@ async def get_token(
         await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
 
     return token
-
